@@ -1,0 +1,432 @@
+PARSER_BEGIN(parser)
+package parser;
+
+import syntax.*;
+import java.util.ArrayList;
+
+public class parser {}
+PARSER_END(parser)
+
+
+SKIP : {
+     <"//" (~["\n", "\r"])* ("\n" | "\r" | "\r\n")>
+   | " "
+   | "\t"
+   | "\n"
+   | "\r"
+   | "\r\n"
+}
+
+MORE : {
+      "//" : IN_SINGLE_LINE_COMMENT
+   |  "/*" : IN_MULTI_LINE_COMMENT
+}
+
+<IN_SINGLE_LINE_COMMENT>
+SPECIAL_TOKEN : {
+   <SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > : DEFAULT
+}
+
+<IN_MULTI_LINE_COMMENT>
+SPECIAL_TOKEN : {
+   <MULTI_LINE_COMMENT : "*/" > : DEFAULT
+}
+
+TOKEN : {
+     < GT:                ">" >
+   | < LT:                "<" >
+   | < L_PAREN:           "(" >
+   | < R_PAREN:           ")" >
+   | < L_BRACE:           "{" >
+   | < R__BRACE:          "}" >
+   | < L_BRACKET:         "[" >
+   | < R_BRACKET:         "]" >
+   | < COMMA:             "," >
+   | < EQUALS:            "=" >
+   | < PLUS:              "+" >
+   | < MINUS:             "-" >
+   | < MULTIPLY:          "*" >
+   | < NOT:               "!" >
+   | < PERIOD:            "." >
+   | < SEMICOLON:         ";" >
+   | < AND:               "&&">
+   | < IF:                "if" >
+   | < NEW:               "new" >
+   | < INT:               "int" >
+   | < ELSE:              "else" >
+   | < VOID:              "void" >
+   | < MAIN:              "main" >
+   | < TRUE:              "true" >
+   | < THIS:              "this" >
+   | < CLASS:             "class" >
+   | < WHILE:             "while" >
+   | < FALSE:             "false" >
+   | < STATIC:            "static" >
+   | < STRING:            "String" >
+   | < RETURN:            "return" >
+   | < PUBLIC:            "public" >
+   | < LENGTH:            "length" >
+   | < EXTENDS:           "extends" >
+   | < BOOLEAN:           "boolean" >
+   | < PRINT:             "System.out.println" >
+   | < IDENTIFIER:        (["a" - "z"] | ["A" - "Z"])+ ((["a" - "z"] | ["A" - "Z"]) | (["0" - "9"]) | "_")* >
+   | < INTEGER_LIT:       (((["0"-"9"])+ "." (["0" - "9"])*) | ((["0" - "9"])* "." (["0" - "9"])+) | (["0" - "9"])+) >
+   | < INVALID:           ~[" ", "\t", "\n", "\b", "\f", "\r"] >
+}
+
+Program Program () :
+{ MainClass main; ArrayList <ClassDecl> classDec = new ArrayList <ClassDecl>(); } 
+{
+   main = MainClass()
+   (ClassDeclaration(classDec))*
+   <EOF>
+   {return new Program (main, classDec);}
+}
+
+MainClass MainClass ():
+{ Token t; Identifier i1; Identifier i2; Statement statement; ArrayList <Statement> statements = new ArrayList<Statement>();}
+{
+   <CLASS>
+   t = <IDENTIFIER>
+   {i1 = new Identifier(t.beginLine, t.beginColumn, t.toString());}
+   "{" <PUBLIC> <STATIC> <VOID> <MAIN> <L_PAREN> <STRING> <L_BRACKET> <R_BRACKET>
+   t = <IDENTIFIER>
+   {i2 = new Identifier(t.beginLine, t.beginColumn, t.toString());}
+   <R_PAREN> "{"
+   Statement(statements)
+   {statement = statements.get(0);}
+   "}" "}"
+   {return new MainClass (i1, i2, statement);}
+}
+
+void ClassDeclaration (ArrayList <ClassDecl> classes): 
+{Token t; Identifier i1; Identifier i2 = null; ArrayList <VarDecl> vars = new ArrayList<VarDecl>(); ArrayList<MethodDecl> methods = new ArrayList<MethodDecl>();}
+{
+   <CLASS>
+   t = <IDENTIFIER>
+   {i1 = new Identifier(t.beginLine, t.beginColumn, t.toString());} 
+   ( <EXTENDS> t = <IDENTIFIER>  {i2 = new Identifier(t.beginLine, t.beginColumn, t.toString());})? 
+   "{" 
+   (VarDeclaration(vars))* 
+   (MethodDeclaration(methods))* 
+   "}"  
+   { if(i2 != null) {
+      classes.add(new ExtendingClassDecl(i1, i2, vars, methods)); 
+    }
+    else {
+      classes.add(new SimpleClassDecl(i1, vars, methods));
+    } 
+  }
+}
+
+void VarDeclaration (ArrayList <VarDecl> vars):
+{ Token t; Type type; Identifier i;}
+{
+   type = Type()
+   t = <IDENTIFIER>
+   <SEMICOLON>
+   {i = new Identifier(t.beginLine, t.beginColumn, t.toString());}
+   {vars.add(new VarDecl(type, i)); }
+}
+
+void MethodDeclaration(ArrayList <MethodDecl> methods):
+{ Token t;
+ Type t1; Type t2;
+ Identifier i; Identifier i2;
+ ArrayList<Formal> formals = new ArrayList<Formal>();
+ ArrayList<VarDecl> vars = new ArrayList<VarDecl>();
+ ArrayList<Statement> statements = new ArrayList<Statement>(); 
+ Expression e1;
+}
+{
+   <PUBLIC> t1 = Type()
+   t = <IDENTIFIER>
+   {i = new Identifier(t.beginLine, t.beginColumn, t.toString());} 
+   <L_PAREN>
+   (t2 = Type() t = <IDENTIFIER> {i2 = new Identifier(t.beginLine, t.beginColumn, t.toString());} 
+   {formals.add(new Formal(t2, i2));} 
+   (
+      <COMMA>
+      t2 = Type() 
+      t = <IDENTIFIER>
+      {i2 = new Identifier(t.beginLine, t.beginColumn, t.toString());} 
+      {formals.add(new Formal(t2, i2) );} 
+      )* )? 
+   <R_PAREN>
+   "{" 
+   (LOOKAHEAD(2) VarDeclaration(vars))* 
+   (Statement(statements))* 
+   <RETURN> 
+   e1 = Expression()
+   <SEMICOLON> 
+   "}" 
+   {methods.add(new MethodDecl(t1, i, formals, vars, statements, e1));}
+}
+
+Type Type ():
+{Token t; }
+{
+   (     LOOKAHEAD(2) <INT> "[" "]" { return Type.THE_INT_ARRAY_TYPE; }
+      |  <BOOLEAN> { return Type.THE_BOOLEAN_TYPE; }
+      |  <INT> { return Type.THE_INTEGER_TYPE; }
+      |  t = <IDENTIFIER> {return new IdentifierType(t.beginLine, t.beginColumn, t.toString());}
+   )
+}
+
+void Statement(ArrayList <Statement> statements):
+{ 
+  Token t;
+  Expression e1; Expression e2;
+  ArrayList<Statement> s1 = new ArrayList <Statement>(); ArrayList<Statement> s2 = new ArrayList<Statement>(); 
+  Statement statement1; Statement statement2;
+  Identifier i;
+}
+{
+   (     
+         "{" (Statement(statements))+ "}"
+      |  (<IF> <L_PAREN> 
+          e1 = Expression() 
+          <R_PAREN> 
+          Statement(s1) {statement1 = s1.get(0);} 
+          <ELSE> 
+          Statement(s2) 
+          {statement2 = s2.get(0);} 
+          {statements.add(new If(e1, statement1, statement2)); } )
+      |  (<WHILE> <L_PAREN> 
+          e1 = Expression() 
+          <R_PAREN> 
+          Statement(s1) 
+          {statement1 = s1.get(0);} 
+          { statements.add(new While(e1, statement1)); } )
+      |  (<PRINT> <L_PAREN> 
+          e1 = Expression() 
+          <R_PAREN> 
+          <SEMICOLON> 
+          {statements.add(new Print(e1)); } )
+      |  (t = <IDENTIFIER> {i = new Identifier(t.beginLine, t.beginColumn, t.toString());} 
+            (
+                (<EQUALS> 
+                  e1 = Expression() 
+                  <SEMICOLON> 
+                  { statements.add(new Assign(i, e1)); } )
+            |   (<L_BRACKET> 
+                  e1 = Expression() 
+                  <R_BRACKET> 
+                  <EQUALS> 
+                  e2 = Expression() 
+                  <SEMICOLON> 
+                  { statements.add(new ArrayAssign(i, e1, e2)); } )
+            )
+         )
+   )
+}
+
+Expression Expression() :
+{}
+{
+  LOOKAHEAD( PrimaryExpression() <AND> )
+  {return AndExpression();}
+|
+  LOOKAHEAD( PrimaryExpression() <LT> )
+  {return CompareExpression();}
+|
+  LOOKAHEAD( PrimaryExpression() <PLUS> )
+  {return PlusExpression();}
+|
+  LOOKAHEAD( PrimaryExpression() <MINUS> )
+  {return MinusExpression();}
+|
+  LOOKAHEAD( PrimaryExpression() <MULTIPLY> )
+  {return TimesExpression();}
+|
+  LOOKAHEAD( PrimaryExpression() <L_BRACKET> )
+  {return ArrayLookup();}
+|
+  LOOKAHEAD( PrimaryExpression() <PERIOD> <LENGTH> )
+  {return ArrayLength();}
+|
+  LOOKAHEAD( PrimaryExpression() <PERIOD> Identifier() <L_PAREN> )
+  {return MessageSend();}
+| 
+  {return PrimaryExpression();}
+}
+
+Expression AndExpression() :
+{Expression e1; Expression e2;} 
+{
+  e1 = PrimaryExpression()
+  <AND> 
+  e2 = PrimaryExpression()
+  {return new And(e1, e2);}
+}
+
+Expression CompareExpression() :
+{Expression e1; Expression e2;} 
+{
+  e1 = PrimaryExpression() 
+  <LT> 
+  e2 = PrimaryExpression()
+  {return new LessThan(e1, e2);}
+}
+
+Expression PlusExpression() :
+{Expression e1; Expression e2;}
+{
+  e1 = PrimaryExpression() 
+  <PLUS> 
+  e2 = PrimaryExpression()
+  {return new Plus(e1, e2);}
+}
+
+Expression MinusExpression() :
+{Expression e1; Expression e2;}
+{
+  e1 = PrimaryExpression() 
+  <MINUS> 
+  e2 = PrimaryExpression()
+  {return new Minus(e1, e2);}
+}
+
+Expression TimesExpression() :
+{Expression e1; Expression e2;}
+{
+  e1 = PrimaryExpression() 
+  <MULTIPLY> 
+  e2 = PrimaryExpression()
+  {return new Times(e1, e2);}
+}
+
+Expression ArrayLookup() :
+{Expression e1; Expression e2;}
+{
+  e1 = PrimaryExpression() 
+  <L_BRACKET> 
+  e2 = PrimaryExpression() 
+  <R_BRACKET>
+  {return new ArrayLookup(e1, e2);}
+}
+
+Expression ArrayLength() :
+{Expression e1;}
+{
+  e1 = PrimaryExpression() 
+  <PERIOD> <LENGTH>
+  {return new ArrayLength(e1);}
+}
+
+Expression MessageSend() :
+{  Expression e;
+   ArrayList<Expression> exps = new ArrayList<Expression>();
+   IdentifierExp id;
+}
+{
+  e = PrimaryExpression() 
+  <PERIOD> 
+  id = Identifier() 
+  <L_PAREN> 
+  ExpressionList(exps)
+  <R_PAREN>
+  {return new Call(e, new Identifier(id.lineNumber, id.columnNumber, id.toString()), exps);}
+}
+
+void ExpressionList(ArrayList<Expression> expList) :
+{Expression e1;}
+{
+  e1 = Expression() {expList.add(e1);}
+  ( e1 = ExpressionRest() {expList.add(e1);})*
+}
+
+Expression ExpressionRest() :
+{Expression e1;}
+{
+  <COMMA> 
+  e1 = Expression()
+  {return e1;}
+}
+
+Expression PrimaryExpression() :
+{}
+{
+  {return IntegerLiteral();}
+|
+  {return TrueLiteral();}
+|
+  {return FalseLiteral();}
+|
+  {return Identifier();}
+|
+  {return ThisExpression();}
+|
+  LOOKAHEAD(3)
+  {return ArrayAllocationExpression();}
+|
+  {return AllocationExpression();}
+|   
+  {return NotExpression();}
+|   
+  {return BracketExpression();}
+}
+
+IntegerLiteral IntegerLiteral() :
+{Token t;}
+{
+  t = <INTEGER_LIT>
+  {return new IntegerLiteral (Integer.valueOf(t.toString()));}
+}
+
+
+True TrueLiteral() :
+{Token t;}
+{
+  t = <TRUE>
+  {return new True(t.beginLine, t.beginColumn);}
+}
+
+False FalseLiteral() :
+{Token t;}
+{
+  t = <FALSE>
+  {return new False(t.beginLine, t.beginColumn);}
+}
+
+IdentifierExp Identifier() :
+{Token t;}
+{
+  t = <IDENTIFIER>
+  {return new IdentifierExp(t.beginLine, t.beginColumn, t.toString());}
+}
+
+This ThisExpression() :
+{Token t;}
+{
+  t = <THIS>
+  {return new This(t.beginLine, t.beginColumn);}
+}
+
+NewArray ArrayAllocationExpression() :
+{Expression e1;}
+{
+  <NEW> <INT> <L_BRACKET> e1 = Expression() <R_BRACKET>
+  {return new NewArray(e1);}
+}
+
+NewObject AllocationExpression() :
+{IdentifierExp exp;}
+{
+  <NEW> exp = Identifier() <L_PAREN> <R_PAREN>
+  {return new NewObject(new Identifier(exp.lineNumber, exp.columnNumber, exp.s));}
+}
+
+Not NotExpression() :
+{Expression e1;}
+{
+  <NOT> e1 = Expression()
+  {return new Not(e1);}
+}
+
+Expression BracketExpression() :
+{Expression e;}
+{
+  <L_PAREN> e = Expression() <R_PAREN>
+  {return e;}
+}

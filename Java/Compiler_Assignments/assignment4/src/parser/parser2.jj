@@ -1,0 +1,413 @@
+PARSER_BEGIN(parser)
+package parser;
+  public class parser {}
+PARSER_END(parser)
+
+SKIP : /* WHITE SPACE */
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| "\f"
+}
+
+SPECIAL_TOKEN : /* COMMENTS */
+{
+  <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+| <FORMAL_COMMENT: "/**" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+| <MULTI_LINE_COMMENT: "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN : 
+{
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LSQPAREN: "[" >
+| < RSQPAREN: "]" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < SEMICOLON: ";" >
+| < DOT: "." >
+| < ASSIGN: "=" >
+| < LT: "<" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < AND : "&&" >   
+| < NOT : "!" >   
+| < BOOLEAN: "boolean" >   
+| < CLASS: "class" >
+| < INTERFACE: "interface" >
+| < ELSE: "else" >
+| < EXTENDS: "extends" >
+| < FALSE: "false" >
+| < IF: "if" >
+| < WHILE: "while" >
+| < INTEGER: "int" >   
+| < LENGTH: "length" >
+| < MAIN: "main" >
+| < NEW: "new" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < STATIC: "static" >
+| < STRING: "String" >
+| < THIS: "this" >
+| < TRUE: "true" >
+| < PRINT: "System.out.println" >
+| < VOID: "void" >         
+}
+
+TOKEN : /* LITERALS */
+{
+  < INTEGER_LITERAL: ( ["1"-"9"] (["0"-"9"])* | "0" ) >
+}
+
+TOKEN : /* IDENTIFIERS */
+{
+  < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+|
+  < #LETTER:
+      ["a" -"z"] | ["A" - "Z"]
+  >
+|
+  < #DIGIT:
+      ["0" -"9"]
+  >
+}
+
+
+/************************************
+ * The MiniJava Grammar Starts Here *
+ ************************************/
+
+
+void Goal() :
+{}
+{
+  MainClass()
+  ( TypeDeclaration() )*
+  <EOF>
+}
+
+void MainClass() :
+{}
+{
+  "class" Identifier() "{"
+    "public" "static" "void" "main" "(" "String" "[" "]" Identifier() ")"   
+    "{" PrintStatement() "}"
+  "}"
+}
+
+void TypeDeclaration() :  
+{}
+{ 
+  LOOKAHEAD(3)
+  ClassDeclaration()
+|
+  ClassExtendsDeclaration()
+}
+
+void ClassDeclaration() :
+{}
+{
+  "class" Identifier() "{" ( VarDeclaration() )* 
+                           ( MethodDeclaration() )* 
+                       "}"
+}
+
+void ClassExtendsDeclaration() :
+{}
+{
+  "class" Identifier() "extends" Identifier()
+                       "{" ( VarDeclaration() )* 
+                           ( MethodDeclaration() )* 
+                       "}"
+}
+
+void VarDeclaration() :  
+{}
+{ 
+  Type() Identifier() ";"      
+}
+
+void MethodDeclaration() :  
+{}
+{
+  "public" Type() Identifier() 
+  "(" ( FormalParameterList() )? ")"   
+  "{" ( LOOKAHEAD(2) VarDeclaration() )* 
+      ( Statement() )* "return" Expression() ";" "}"
+}
+
+void FormalParameterList() :
+{}
+{
+  FormalParameter() ( FormalParameterRest() )*
+}
+
+void FormalParameter() :
+{}
+{
+  Type() Identifier()
+}
+
+void FormalParameterRest() :
+{}
+{
+  "," FormalParameter()
+}
+
+void Type() :
+{}
+{
+  LOOKAHEAD(3)
+  ArrayType()
+|
+  BooleanType()
+|
+  IntegerType()
+|
+  Identifier()     
+}
+
+void ArrayType() :
+{}
+{
+  "int" "[" "]"
+}
+
+void BooleanType() :
+{}
+{
+  "boolean"
+}
+
+void IntegerType() :
+{}
+{
+  "int"
+}
+
+void Statement() :
+{}
+{
+  Block()
+| 
+  LOOKAHEAD(2)
+  AssignmentStatement()
+|
+  LOOKAHEAD(2)
+  ArrayAssignmentStatement()
+|
+  IfStatement()
+|
+  WhileStatement()
+|
+  PrintStatement()
+}
+
+void Block() :
+{}
+{
+  "{" ( Statement() )* "}"
+}
+
+void AssignmentStatement() :
+{}
+{
+  Identifier() "=" Expression() ";"
+}
+
+void ArrayAssignmentStatement() :
+{}
+{
+  Identifier() "[" Expression() "]" "=" Expression() ";"
+}
+
+void IfStatement() :
+{}
+{
+  "if" "(" Expression() ")" Statement() "else" Statement() 
+}
+
+void WhileStatement() :
+{}
+{
+  "while" "(" Expression() ")" Statement() 
+}
+
+void PrintStatement() :
+{}
+{
+  "System.out.println" "(" Expression() ")" ";"
+}
+
+void Expression() :
+{}
+{
+  LOOKAHEAD( PrimaryExpression() "&&" )
+  AndExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "<" )
+  CompareExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "+" )
+  PlusExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "-" )
+  MinusExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "*" )
+  TimesExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "[" )
+  ArrayLookup()
+|
+  LOOKAHEAD( PrimaryExpression() "." "length" )
+  ArrayLength()
+|
+  LOOKAHEAD( PrimaryExpression() "." Identifier() "(" )
+  MessageSend()
+| 
+  PrimaryExpression()
+}
+
+void AndExpression() :
+{} 
+{
+  PrimaryExpression() "&&" PrimaryExpression()
+}
+
+void CompareExpression() :
+{} 
+{
+  PrimaryExpression() "<" PrimaryExpression()
+}
+
+void PlusExpression() :
+{}
+{
+  PrimaryExpression() "+" PrimaryExpression()
+}
+
+void MinusExpression() :
+{}
+{
+  PrimaryExpression() "-" PrimaryExpression()
+}
+
+void TimesExpression() :
+{}
+{
+  PrimaryExpression() "*" PrimaryExpression()
+}
+
+void ArrayLookup() :
+{}
+{
+  PrimaryExpression() "[" PrimaryExpression() "]"
+}
+
+void ArrayLength() :
+{}
+{
+  PrimaryExpression() "." "length"
+}
+
+void MessageSend() :
+{}
+{
+  PrimaryExpression() "." Identifier() 
+  "(" ( ExpressionList() )? ")"
+}
+
+void ExpressionList() :
+{}
+{
+  Expression() ( ExpressionRest() )*
+}
+
+void ExpressionRest() :
+{}
+{
+  "," Expression()
+}
+
+void PrimaryExpression() :
+{}
+{
+  IntegerLiteral()
+|
+  TrueLiteral()
+|
+  FalseLiteral()
+|
+  Identifier()
+|
+  ThisExpression()
+|
+  LOOKAHEAD(3)
+  ArrayAllocationExpression()
+|
+  AllocationExpression()
+|   
+  NotExpression()
+|   
+  BracketExpression()
+}
+
+void IntegerLiteral() :
+{}
+{
+  <INTEGER_LITERAL>
+}
+
+
+void TrueLiteral() :
+{}
+{
+  "true"
+}
+
+void FalseLiteral() :
+{}
+{
+  "false"
+}
+
+void Identifier() :
+{}
+{
+  <IDENTIFIER>
+}
+
+void ThisExpression() :
+{}
+{
+  "this"
+}
+
+void ArrayAllocationExpression() :
+{}
+{
+  "new" "int" "[" Expression() "]"
+}
+
+void AllocationExpression() :
+{}
+{
+  "new" Identifier() "(" ")"
+}
+
+void NotExpression() :
+{}
+{
+  "!" Expression() 
+}
+
+void BracketExpression() :
+{}
+{
+  "(" Expression() ")"
+}
+

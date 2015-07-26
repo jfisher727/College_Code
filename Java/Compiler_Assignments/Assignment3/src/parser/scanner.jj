@@ -1,0 +1,56 @@
+PARSER_BEGIN(scanner)
+package parser;
+public class scanner {}
+PARSER_END(scanner)
+
+
+SKIP : {
+     <"//" (~["\n", "\r"])* ("\n" | "\r" | "\r\n")>
+   | " "
+   | "\t"
+   | "\n"
+   | "\r"
+   | "\r\n"
+}
+
+TOKEN : {
+     < GT:                ">" >
+   | < L_PAREN:           "(" >
+   | < R_PAREN:           ")" >
+   | < L_CURLY_BRACKET:   "{" >
+   | < R__CURLY_BRACKET:  "}" >
+   | < L_BRACKET:         "[" >
+   | < R_BRACKET:         "]" >
+   | < COMMA:             "," >
+   | < EQUALS:            "=" >
+   | < PLUS:              "+" >
+   | < MINUS:             "-" >
+   | < MULTIPLY:          "*" >
+   | < NOT:               "!" >
+   | < PERIOD:            "." >
+   | < SEMICOLON:         ";" >
+   | < AND:               "&&">
+   | < IF:                "if" >
+   | < NEW:               "new" >
+   | < INT:               "int" >
+   | < ELSE:              "else" >
+   | < VOID:              "void" >
+   | < MAIN:              "main" >
+   | < TRUE:              "true" >
+   | < THIS:              "this" >
+   | < CLASS:             "class" >
+   | < WHILE:             "while" >
+   | < FALSE:             "false" >
+   | < STATIC:            "static" >
+   | < STRING:            "String" >
+   | < RETURN:            "return" >
+   | < PUBLIC:            "public" >
+   | < LENGTH:            "length" >
+   | < EXTENDS:           "extends" >
+   | < BOOLEAN:           "boolean" >
+   | < PRINT:             "System.out.println" >
+   | < IDENTIFIER:        (["a" - "z"] | ["A" - "Z"])+ ((["a" - "z"] | ["A" - "Z"]) | (["0" - "9"]) | "_")* >
+   | < INTEGER_LIT:       (((["0"-"9"])+ "." (["0" - "9"])*) | ((["0" - "9"])* "." (["0" - "9"])+) | (["0" - "9"])+) >
+   | < INVALID:           ~[" ", "\t", "\n", "\b", "\f", "\r"] >
+
+}

@@ -1,0 +1,473 @@
+PARSER_BEGIN(parser)
+package parser;
+public class parser {}
+PARSER_END(parser)
+
+
+SKIP : {
+     <"//" (~["\n", "\r"])* ("\n" | "\r" | "\r\n")>
+   | " "
+   | "\t"
+   | "\n"
+   | "\r"
+   | "\r\n"
+}
+
+MORE : {
+      "//" : IN_SINGLE_LINE_COMMENT
+   |  "/*" : IN_MULTI_LINE_COMMENT
+}
+
+<IN_SINGLE_LINE_COMMENT>
+SPECIAL_TOKEN : {
+   <SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > : DEFAULT
+}
+
+<IN_MULTI_LINE_COMMENT>
+SPECIAL_TOKEN : {
+   <MULTI_LINE_COMMENT : "*/" > : DEFAULT
+}
+
+TOKEN : {
+     < GT:                ">" >
+   | < LT:                "<" >
+   | < L_PAREN:           "(" >
+   | < R_PAREN:           ")" >
+   | < L_BRACE:           "{" >
+   | < R_BRACE:           "}" >
+   | < L_BRACKET:         "[" >
+   | < R_BRACKET:         "]" >
+   | < COMMA:             "," >
+   | < EQUALS:            "=" >
+   | < PLUS:              "+" >
+   | < MINUS:             "-" >
+   | < MULTIPLY:          "*" >
+   | < NOT:               "!" >
+   | < PERIOD:            "." >
+   | < SEMICOLON:         ";" >
+   | < AND:               "&&">
+   | < IF:                "if" >
+   | < NEW:               "new" >
+   | < INT:               "int" >
+   | < ELSE:              "else" >
+   | < VOID:              "void" >
+   | < MAIN:              "main" >
+   | < TRUE:              "true" >
+   | < THIS:              "this" >
+   | < CLASS:             "class" >
+   | < WHILE:             "while" >
+   | < FALSE:             "false" >
+   | < STATIC:            "static" >
+   | < STRING:            "String" >
+   | < RETURN:            "return" >
+   | < PUBLIC:            "public" >
+   | < LENGTH:            "length" >
+   | < EXTENDS:           "extends" >
+   | < BOOLEAN:           "boolean" >
+   | < PRINT:             "System.out.println" >
+   | < IDENTIFIER:        (["a" - "z"] | ["A" - "Z"])+ ((["a" - "z"] | ["A" - "Z"]) | (["0" - "9"]) | "_")* >
+   | < INTEGER_LIT:       (((["0"-"9"])+ "." (["0" - "9"])*) | ((["0" - "9"])* "." (["0" - "9"])+) | (["0" - "9"])+) >
+   | < INVALID:           ~[" ", "\t", "\n", "\b", "\f", "\r"] >
+}
+
+void Goal ():
+{}
+{
+  MainClass()
+  ( ClassDeclaration() )*
+  <EOF>
+}
+
+void MainClass ():
+{}
+{
+  <CLASS> 
+  <IDENTIFIER> 
+  <L_BRACE> <PUBLIC> <STATIC> <VOID> <MAIN> <L_PAREN> <STRING> <L_BRACKET> <R_BRACKET> 
+  <IDENTIFIER> 
+  <R_PAREN> <L_BRACE> 
+  Statement() 
+  <R_BRACE> <R_BRACE>
+}
+
+void ClassDeclaration ():
+{}
+{
+    LOOKAHEAD(3)
+    SimpleClass()
+  |
+    ExtendsClass()
+}
+
+void SimpleClass ():
+{}
+{
+  <CLASS>
+  <IDENTIFIER>
+  <L_BRACE>
+  ( VarDeclaration() )*
+  ( MethodDeclaration() )*
+  <R_BRACE>
+}
+
+void ExtendsClass ():
+{}
+{
+  <CLASS>
+  <IDENTIFIER>
+  <EXTENDS>
+  <IDENTIFIER>
+  <L_BRACE>
+  ( VarDeclaration() )*
+  ( MethodDeclaration() )*
+  <R_BRACE>
+}
+
+void VarDeclaration ():
+{}
+{
+  Type()
+  <IDENTIFIER>
+  <SEMICOLON>
+}
+
+void MethodDeclaration ():
+{}
+{
+  <PUBLIC>
+  Type()
+  <IDENTIFIER>
+  <L_PAREN>
+  ( FormalParameterList() )?
+  <R_PAREN> <L_BRACE>
+  ( LOOKAHEAD(2) VarDeclaration() )*
+  ( Statement() )*
+  <RETURN>
+  Expression()
+  <SEMICOLON> <R_BRACE>
+}
+
+void FormalParameterList ():
+{}
+{
+  FormalParameter() ( FormalParameterRest() )*
+}
+
+void FormalParameter ():
+{}
+{
+  Type()
+  <IDENTIFIER>
+}
+
+void FormalParameterRest ():
+{}
+{
+  <COMMA> FormalParameter()
+}
+
+void Type ():
+{}
+{
+    LOOKAHEAD(3)
+    ArrayType ()
+  |
+    BooleanType()
+  |
+    IntType()
+  |
+    IdentifierType()
+}
+
+void ArrayType ():
+{}
+{
+  <INT> <L_BRACKET> <R_BRACKET>
+}
+
+void BooleanType ():
+{}
+{
+  <BOOLEAN>
+}
+
+void IntType ():
+{}
+{
+  <INT>
+}
+
+void IdentifierType ():
+{}
+{
+  <IDENTIFIER>
+}
+
+void Statement ():
+{}
+{
+    BlockStatements()
+  |
+    LOOKAHEAD(2)
+    AssignmentStatement()
+  |
+    LOOKAHEAD(2)
+    ArrayAssignment()
+  |
+    IfStatement()
+  |
+    WhileStatement()
+  |
+    PrintStatement()
+}
+
+void BlockStatements ():
+{}
+{
+  <L_BRACE>
+  ( Statement() )*
+  <R_BRACE>
+}
+
+void IfStatement ():
+{}
+{
+  <IF> <L_PAREN>
+  Expression()
+  <R_PAREN>
+  Statement()
+  <ELSE>
+  Statement()
+}
+
+void WhileStatement ():
+{}
+{
+  <WHILE> <L_PAREN>
+  Expression ()
+  <R_PAREN>
+  Statement()
+}
+
+void PrintStatement ():
+{}
+{
+  <PRINT> <L_PAREN>
+  Expression()
+  <R_PAREN> <SEMICOLON>
+}
+
+void AssignmentStatement ():
+{}
+{
+  <IDENTIFIER>
+  <EQUALS>
+  Expression()
+  <SEMICOLON> 
+}
+
+void ArrayAssignment ():
+{}
+{
+  <IDENTIFIER>
+  <L_BRACKET>
+  Expression()
+  <R_BRACKET> <EQUALS>
+  Expression()
+  <SEMICOLON>
+}
+
+void Expression ():
+{}
+{
+    LOOKAHEAD( PrimaryExpression() <AND> )
+    And()
+  |
+    LOOKAHEAD( PrimaryExpression() <LT> )
+    LessThan()
+  |
+    LOOKAHEAD( PrimaryExpression() <PLUS> )
+    Plus()
+  |
+    LOOKAHEAD( PrimaryExpression() <MINUS> )
+    Minus()
+  |
+    LOOKAHEAD( PrimaryExpression() <MULTIPLY> )
+    Multiplication()
+  |
+    LOOKAHEAD( PrimaryExpression() <L_BRACKET> )
+    ArrayLookup()
+  |
+    LOOKAHEAD ( PrimaryExpression() <PERIOD> <LENGTH> )
+    ArrayLength()
+  |
+    LOOKAHEAD( PrimaryExpression() <PERIOD> <IDENTIFIER> )
+    MethodCall ()
+  |
+    PrimaryExpression()
+}
+
+void And ():
+{}
+{
+  PrimaryExpression()
+  <AND>
+  PrimaryExpression()
+}
+
+void LessThan ():
+{}
+{
+  PrimaryExpression()
+  <LT>
+  PrimaryExpression()
+}
+
+void Plus ():
+{}
+{
+  PrimaryExpression()
+  <PLUS>
+  PrimaryExpression()
+}
+
+void Minus ():
+{}
+{
+  PrimaryExpression()
+  <MINUS>
+  PrimaryExpression()
+}
+
+void Multiplication ():
+{}
+{
+  PrimaryExpression()
+  <MULTIPLY>
+  PrimaryExpression()
+}
+
+void ArrayLookup ():
+{}
+{
+  PrimaryExpression()
+  <L_BRACKET>
+  PrimaryExpression()
+  <R_BRACKET>
+}
+
+void ArrayLength ():
+{}
+{
+  PrimaryExpression()
+  <PERIOD> <LENGTH>
+}
+
+void MethodCall ():
+{}
+{
+  PrimaryExpression()
+  <PERIOD>
+  <IDENTIFIER>
+  <L_PAREN>
+  ( ExpressionList() )?
+  <R_PAREN>
+}
+
+void PrimaryExpression ():
+{}
+{
+    IntegerLiteral()
+  |
+    True()
+  |
+    False()
+  |
+    IdentifierExpression()
+  |
+    This()
+  |
+    LOOKAHEAD(2)
+    NewArray()
+  |
+    LOOKAHEAD(2)
+    NewObject()
+  |
+    Not()
+  |
+    BracketExpression()
+}
+
+void IntegerLiteral ():
+{}
+{
+  <INTEGER_LIT>
+}
+
+void True ():
+{}
+{
+  <TRUE>
+}
+
+void False ():
+{}
+{
+  <FALSE>
+}
+
+void IdentifierExpression ():
+{}
+{
+  <IDENTIFIER>
+}
+
+void This ():
+{}
+{
+  <THIS>
+}
+
+void NewArray ():
+{}
+{
+  <NEW> <INT> <L_BRACKET>
+  Expression()
+  <R_BRACKET>
+}
+
+void NewObject ():
+{}
+{
+  <NEW>
+  <IDENTIFIER>
+  <L_PAREN> <R_PAREN>
+}
+
+void Not ():
+{}
+{
+  <NOT>
+  Expression()
+}
+
+void BracketExpression():
+{}
+{
+  <L_PAREN>
+  Expression()
+  <R_PAREN>
+}
+
+void ExpressionList ():
+{}
+{
+  Expression() ( ExpressionRest() )*
+}
+
+void ExpressionRest ():
+{}
+{
+  <COMMA>
+  Expression()
+}

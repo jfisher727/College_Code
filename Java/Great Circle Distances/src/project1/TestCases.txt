@@ -1,0 +1,11 @@
+38.883  -77.033    Washington, D.C.
+ 55.750   37.700    Moscow, Russia
+-34.667  -58.500    Buenos Aires, Argentina
+ 19.400  -99.150    Ciudad de México (Mexico City)
+ 45.417  -75.717    Ottawa, Canada
+-12.050  -77.050    Lima, Peru
+-33.450  -70.667    Santiago, Chile
+ 48.867    2.333    Paris, France
+ 56.883   24.133    Riga, Latvia
+ 28.083  -80.600    Melbourne, Florida
+ 28.450  -80.533    Cape Canaveral, Florida
